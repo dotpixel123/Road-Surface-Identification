@@ -1,0 +1,14 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+test_50k/
+vali_20k/
+train/
+train_subsamples_img/
+
+# Virtual environments
+.venv
