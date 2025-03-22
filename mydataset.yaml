@@ -1,9 +1,0 @@
-train: C:/Users/merchant/Desktop/code/Road surface classification/merged_img
-val: C:/Users/merchant/Desktop/code/Road surface classification/vali_img
-
-nc: 14  # Number of classes
-
-names: ["dry_asphalt_smooth", "dry_concrete_smooth", "dry_gravel", "dry_mud",
-        "fresh_snow", "ice", "melted_snow", "water_asphalt_smooth",
-        "water_concrete_smooth", "water_mud", "wet_asphalt_smooth",
-        "wet_concrete_smooth", "wet_gravel", "wet_mud"]

@@ -5,14 +5,8 @@ build/
 dist/
 wheels/
 *.egg-info
-test_50k/
-vali_20k/
-train_subsamples_img/
-train_subsamples_txt
-vali_img/
-vali_txt/
-vali_img/
-merged_img/
+Dataset/
+Dataset_copy/
 
 # Virtual environments
 .venv
