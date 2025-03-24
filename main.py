@@ -4,11 +4,7 @@ import modal
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install(["libgl1-mesa-glx", "libglib2.0-0"])
-    .pip_install([
-        "ultralytics~=8.3.93",
-        "opencv-python~=4.10.0",
-        "term-image==0.7.1"
-    ])
+    .pip_install(["ultralytics~=8.3.93", "opencv-python~=4.10.0", "term-image==0.7.1"])
 )
 
 # Create or retrieve the volume
@@ -26,10 +22,11 @@ TRAIN_GPU_COUNT = 1
 TRAIN_GPU = f"A100-80GB:{TRAIN_GPU_COUNT}"
 TRAIN_CPU_COUNT = 4
 
+
 @app.function(
     gpu=TRAIN_GPU,
     cpu=TRAIN_CPU_COUNT,
-    timeout=60 * MINUTES,
+    timeout= 240 * MINUTES,
 )
 def train(
     model_id: str,
@@ -45,36 +42,35 @@ def train(
 
     data_path = volume_path / "dataset" / "dataset.yaml"
     best_weights = model_path / "weights" / "best.pt"
-    
-    if resume and best_weights.exists():
+
+    # if resume and best_weights.exists():
         # If the checkpoint is resumable, load it.
-        model = YOLO(str(best_weights))
-    else:
-        # Otherwise, start from the base model.
-        model = YOLO("yolov9c.pt")
-    
+    model = YOLO(str(best_weights))
+    # else:
+    #     # Otherwise, start from the base model.
+    #     model = YOLO("yolov9c.pt")
+
     # If best.pt training is finished, you should force resume to False:
     # For example, you might force it here:
-    resume = False
 
     model.train(
         data=data_path,
         fraction=0.04 if quick_check else 1.0,
         device=list(range(TRAIN_GPU_COUNT)),
-        epochs=1 if quick_check else 20,  # set total epochs higher as desired
-        batch=32,
+        epochs=1 if quick_check else 80,  # set total epochs higher as desired
+        batch=64,
         imgsz=320 if quick_check else 640,
         seed=117,
         workers=max(TRAIN_CPU_COUNT // TRAIN_GPU_COUNT, 1),
-        cache=False,
+        cache=True,
         project=f"{volume_path}/runs",
         name=model_id,
         verbose=True,
-        resume=resume
+        resume=resume,
     )
 
 
-@app.cls()
+@app.cls(gpu="T4")
 class Inference:
     def __init__(self, weights_path):
         self.weights_path = weights_path
@@ -82,46 +78,85 @@ class Inference:
     @modal.enter()
     def load_model(self):
         from ultralytics import YOLO
-
         self.model = YOLO(self.weights_path)
-    '''
-    @modal.method()
-    def predict(self, model_id: str, image_path: str, display: bool = False):
-        """A simple method for running inference on one image at a time."""
-        results = self.model.predict(
-            image_path,
-            half=True,  # use fp16
-            save=True,
-            exist_ok=True,
-            project=f"{volume_path}/predictions/{model_id}",
-        )
-        if display:
-            from term_image.image import from_file
 
-            terminal_image = from_file(results[0].path)
-            terminal_image.draw()
-        # you can view the output file via the Volumes UI in the Modal dashboard -- https://modal.com/storage
-    '''
+    @modal.method()
+    def stream(self, model_id: str, image_files: list | None = None):
+        """Counts the number of objects in a list of image files.
+        Intended as a demonstration of high-throughput streaming inference."""
+        import time
+
+        img_count, completed, start = 0, 0, time.monotonic_ns()
+        for image_path in image_files:
+            img_count += 1
+            if img_count >= 200: 
+                break
+            results = self.model.predict(  # noqa: F841
+                image_path,      # pass the path string
+                half=True,       # use fp16
+                save=True,  
+                exist_ok=True, 
+                verbose=False,
+                project=f"{volume_path}/predictions/{model_id}",
+                conf=0.4,
+            )
+            completed += 1
+
+        elapsed_seconds = (time.monotonic_ns() - start) / 1e9
+        print("Inferences per second:", round(completed / elapsed_seconds, 2))
+        print(f"TOTAL INFERENCES: {completed}")
 
 
 @app.function()
-def infer(model_id: str):  
+def infer(model_id: str):
     import os
-    inference = Inference(
-        volume_path / "runs" / model_id / "weights" / "best.pt"
-    )
-    # List only image files in the test folder
-    test_dir = volume_path / "dataset" / "test"
-    test_images = [f for f in os.listdir(str(test_dir)) if f.lower().endswith(".jpg")]
 
-    for ii, img_name in enumerate(test_images):
-        print(f"{model_id}: Single image prediction on image {img_name}")
-        # Construct the full path to the image file
-        full_image_path = str(test_dir / img_name)
-        inference.predict.remote(
-            model_id=model_id,
-            image_path=full_image_path,
-            display=(ii == 0)
-        )
-        if ii >= 4:
-            break
+    # Instantiate Inference using the best.pt weights
+    inference = Inference(volume_path / "runs" / model_id / "weights" / "best.pt")
+    
+    test_dir = volume_path / "dataset" / "inference"
+    # Build a list of full paths for test images (filtering out non-image files)
+    test_images_path = [str(test_dir / f) for f in os.listdir(str(test_dir)) if f.lower().endswith(".jpg")]
+
+    print(f"{model_id}: Running streaming inferences on all images in the test set...")
+    # Use .call() to run the remote method synchronously
+    inference.stream.remote(model_id, test_images_path)
+
+@app.function()
+def create_video(model_id: str, fps: int = 10):
+    import cv2
+    
+    # Convert the predictions_dir from string to Path
+    predictions_dir = volume_path / "predictions" / model_id / "predict"
+    # List all jpg files in the predictions directory and sort them
+    image_files = sorted(list(predictions_dir.glob("*.jpg")))
+    
+    if not image_files:
+        print("No predicted images found for video creation.")
+        return f"{model_id}: No video created, no predicted images found."
+    
+    # Read the first image to get dimensions
+    first_frame = cv2.imread(str(image_files[0]))
+    if first_frame is None:
+        print("Unable to read the first image for video creation.")
+        return f"{model_id}: Error reading first image for video creation."
+    else: 
+        print(f"Creating video from {len(image_files)} predicted images...")
+
+    height, width, _ = first_frame.shape
+    # Define the codec and create a VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    output_video = str(volume_path / "output_video.mp4")
+    video_writer = cv2.VideoWriter(output_video, fourcc, fps, (width, height))
+    
+    for img_file in image_files:
+        frame = cv2.imread(str(img_file))
+        if frame is None:
+            print(f"Warning: Unable to read {img_file}")
+            continue
+        video_writer.write(frame)
+    
+    video_writer.release()
+    print(f"Video saved to {output_video}")
+    return f"{model_id}: Video saved to {output_video}"
+

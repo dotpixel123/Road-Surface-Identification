@@ -12,6 +12,7 @@ dependencies = [
     "notebook>=7.3.3",
     "pip>=25.0.1",
     "seaborn>=0.13.2",
+    "term-image>=0.7.2",
     "torch>=2.6.0",
     "ultralytics>=8.3.93",
 ]
