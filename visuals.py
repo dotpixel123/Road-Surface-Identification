@@ -3,9 +3,9 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-train_set = "Dataset\\Images\\train_img"
-val_test = "Dataset\\Images\\vali_img"
-test_set = "Dataset\\Images\\test_img"
+train_set = "Dataset\\Data\\train"
+val_test = "Dataset\\Data\\val"
+test_set = "Dataset\\Data\\test"
 
 class_names = [
     "dry-asphalt-smooth", "dry-concrete-smooth", "dry-gravel", "dry-mud",

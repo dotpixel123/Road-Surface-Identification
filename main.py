@@ -4,7 +4,7 @@ import modal
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install(["libgl1-mesa-glx", "libglib2.0-0"])
-    .pip_install(["ultralytics~=8.3.93", "opencv-python~=4.10.0", "term-image==0.7.1"])
+    .pip_install(["ultralytics~=8.3.93", "opencv-python~=4.10.0"])
 )
 
 # Create or retrieve the volume
@@ -41,7 +41,7 @@ def train(
     model_path.mkdir(parents=True, exist_ok=True)
 
     data_path = volume_path / "dataset" / "dataset.yaml"
-    best_weights = model_path / "weights" / "best.pt"
+    best_weights = model_path / "weights" / "last.pt"
 
     # if resume and best_weights.exists():
         # If the checkpoint is resumable, load it.
@@ -86,11 +86,11 @@ class Inference:
         Intended as a demonstration of high-throughput streaming inference."""
         import time
 
-        img_count, completed, start = 0, 0, time.monotonic_ns()
+        completed, start = 0, time.monotonic_ns()
         for image_path in image_files:
-            img_count += 1
-            if img_count >= 200: 
-                break
+            # completed += 1
+            # if completed >= 200: 
+            #     break
             results = self.model.predict(  # noqa: F841
                 image_path,      # pass the path string
                 half=True,       # use fp16
@@ -112,9 +112,9 @@ def infer(model_id: str):
     import os
 
     # Instantiate Inference using the best.pt weights
-    inference = Inference(volume_path / "runs" / model_id / "weights" / "best.pt")
+    inference = Inference(volume_path / "runs" / model_id / "weights" / "last.pt")
     
-    test_dir = volume_path / "dataset" / "inference"
+    test_dir = volume_path / "dataset" / "inference_snow"
     # Build a list of full paths for test images (filtering out non-image files)
     test_images_path = [str(test_dir / f) for f in os.listdir(str(test_dir)) if f.lower().endswith(".jpg")]
 
@@ -123,7 +123,7 @@ def infer(model_id: str):
     inference.stream.remote(model_id, test_images_path)
 
 @app.function()
-def create_video(model_id: str, fps: int = 10):
+def create_video(model_id: str, fps: int = 20):
     import cv2
     
     # Convert the predictions_dir from string to Path
@@ -154,6 +154,7 @@ def create_video(model_id: str, fps: int = 10):
         if frame is None:
             print(f"Warning: Unable to read {img_file}")
             continue
+        
         video_writer.write(frame)
     
     video_writer.release()
