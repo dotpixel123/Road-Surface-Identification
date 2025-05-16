@@ -41,8 +41,8 @@ A lightweight Modal‑powered pipeline that fine‑tunes a YOLO model on the RSC
 
 ### 📸 Sample Outputs
 <p align="center">
-  <img src="Results/image.png" width="200" alt="Wet Asphalt">
-  <img src="Results/image2.png" width="200" alt="Snowy Road">
+  <img src="Results/image.png" width="500" alt="Wet Asphalt">
+  <img src="Results/image2.png" width="500" alt="Snowy Road">
 </p>
 
 <details>
@@ -55,7 +55,7 @@ A lightweight Modal‑powered pipeline that fine‑tunes a YOLO model on the RSC
 
 ### 🔖 Results
 <p align="center">
-  <img src="Results\loss.png" width="200" alt="Wet Asphalt">
-  <img src="Results\confusion.png" width="200" height="130" alt="Wet Asphalt">
+  <img src="Results\loss.png" width="500" alt="Wet Asphalt">
+  <img src="Results\confusion.png" width="400" alt="Wet Asphalt">
 </p>
 
