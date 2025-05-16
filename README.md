@@ -25,7 +25,7 @@ A lightweight Modal‑powered pipeline that fine‑tunes a YOLO model on the RSC
 
 ### 📊 Dataset Distribution (Train Set)
 <p align="center">
-  <img src="Output\Figure_1.png" width="600" alt="Distribution of RSCD test images">
+  <img src="Results\Figure_1.png" width="600" alt="Distribution of RSCD test images">
 </p>
 *Distribution of sampled classes in the RSCD test set (30 k images).*
 
@@ -41,21 +41,21 @@ A lightweight Modal‑powered pipeline that fine‑tunes a YOLO model on the RSC
 
 ### 📸 Sample Outputs
 <p align="center">
-  <img src="Output/image.png" width="200" alt="Wet Asphalt">
-  <img src="Output/image2.png" width="200" alt="Snowy Road">
+  <img src="Results/image.png" width="200" alt="Wet Asphalt">
+  <img src="Results/image2.png" width="200" alt="Snowy Road">
 </p>
 
 <details>
 <summary>▶️ Sample Inference Video</summary>
 
-[![Inference Video]](Output/output_video.mp4)
+[![Inference Video]](Results/output_video.mp4)
 </details>
 
 ---
 
 ### 🔖 Results
 <p align="center">
-  <img src="Output\loss.png" width="200" alt="Wet Asphalt">
-  <img src="Output\confusion.png" width="200" height="130" alt="Wet Asphalt">
+  <img src="Results\loss.png" width="200" alt="Wet Asphalt">
+  <img src="Results\confusion.png" width="200" height="130" alt="Wet Asphalt">
 </p>
 
