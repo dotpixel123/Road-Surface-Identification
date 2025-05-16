@@ -16,7 +16,7 @@ volume_path = Path("/root") / "data"
 # Create the Modal app with the image and volume mounted
 app = modal.App("yolo-finetune", image=image, volumes={volume_path: volume})
 
-MINUTES = 60
+MINUTES = 240
 
 TRAIN_GPU_COUNT = 1
 TRAIN_GPU = f"A100-80GB:{TRAIN_GPU_COUNT}"
@@ -26,7 +26,7 @@ TRAIN_CPU_COUNT = 4
 @app.function(
     gpu=TRAIN_GPU,
     cpu=TRAIN_CPU_COUNT,
-    timeout= 240 * MINUTES,
+    timeout= 60 * MINUTES,
 )
 def train(
     model_id: str,
@@ -43,15 +43,13 @@ def train(
     data_path = volume_path / "dataset" / "dataset.yaml"
     best_weights = model_path / "weights" / "last.pt"
 
-    # if resume and best_weights.exists():
+    if resume and best_weights.exists():
         # If the checkpoint is resumable, load it.
-    model = YOLO(str(best_weights))
-    # else:
-    #     # Otherwise, start from the base model.
-    #     model = YOLO("yolov9c.pt")
+        model = YOLO(str(best_weights))
+    else:
+        # Otherwise, start from the base model.
+        model = YOLO("yolov9c.pt")
 
-    # If best.pt training is finished, you should force resume to False:
-    # For example, you might force it here:
 
     model.train(
         data=data_path,
@@ -69,7 +67,6 @@ def train(
         resume=resume,
     )
 
-
 @app.cls(gpu="T4")
 class Inference:
     def __init__(self, weights_path):
@@ -82,20 +79,15 @@ class Inference:
 
     @modal.method()
     def stream(self, model_id: str, image_files: list | None = None):
-        """Counts the number of objects in a list of image files.
-        Intended as a demonstration of high-throughput streaming inference."""
         import time
 
         completed, start = 0, time.monotonic_ns()
         for image_path in image_files:
-            # completed += 1
-            # if completed >= 200: 
-            #     break
             results = self.model.predict(  # noqa: F841
-                image_path,      # pass the path string
-                half=True,       # use fp16
-                save=True,  
-                exist_ok=True, 
+                image_path,
+                half=True,
+                save=True,
+                exist_ok=True,
                 verbose=False,
                 project=f"{volume_path}/predictions/{model_id}",
                 conf=0.4,
@@ -114,12 +106,12 @@ def infer(model_id: str):
     # Instantiate Inference using the best.pt weights
     inference = Inference(volume_path / "runs" / model_id / "weights" / "last.pt")
     
-    test_dir = volume_path / "dataset" / "inference_snow"
+    test_dir = volume_path / "dataset" / "inference_3_trimmed"
     # Build a list of full paths for test images (filtering out non-image files)
     test_images_path = [str(test_dir / f) for f in os.listdir(str(test_dir)) if f.lower().endswith(".jpg")]
 
     print(f"{model_id}: Running streaming inferences on all images in the test set...")
-    # Use .call() to run the remote method synchronously
+
     inference.stream.remote(model_id, test_images_path)
 
 @app.function()

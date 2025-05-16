@@ -15,13 +15,12 @@ class_names = [
 ]
 class_mapping = {name: idx for idx, name in enumerate(class_names)}
 
-
 class_counts = Counter()
 
 # Count images per class
 for img in os.listdir(train_set):
     for class_name in class_names:
-        if class_name in img:  # Check if class name is in the image filename
+        if class_name in img:
             class_counts[class_name] += 1
             break  
 
@@ -33,11 +32,10 @@ print(counts)
 
 plt.figure(figsize=(12, 6))
 sns.barplot(x=list(classes), y=list(counts), palette="viridis")
-plt.xticks(rotation=45, ha="right")  # Rotate class names for better visibility
+plt.xticks(rotation=45, ha="right")  
 plt.xlabel("Class Names")
 plt.ylabel("Number of Images")
 plt.title("Distribution of Images in Each Class (Test Set)")
 plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-# Show the chart
 plt.show()
